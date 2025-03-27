@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify
-from flask_cors import CORS
+from flask_cors import CORS  # ✅ Add this
 import xgboost as xgb
 import pandas as pd
 import numpy as np
@@ -9,7 +9,7 @@ import pickle
 from datetime import datetime, timedelta
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
+CORS(app)  # ✅ Enable CORS for all routes
 
 # Load models
 MODEL_DIR = "/opt/render/project/src/"
@@ -42,9 +42,17 @@ def add_features(df):
     df["price_change"] = df["c"].pct_change()
     df["volume_change"] = df["v"].pct_change()
     df["volume_rroc"] = df["volume_change"].pct_change()
-    df["prev_price_change"] = df["price_change"].shift(1)
-    df["prev_volume_change"] = df["volume_change"].shift(1)
-    return df.dropna()
+    df["previous_price_change"] = df["price_change"].shift(1)
+    df["previous_volume_change"] = df["volume_change"].shift(1)
+    df["previous_volume_rroc"] = df["volume_rroc"].shift(1)
+    df["close_position_in_range"] = (df["c"] - df["l"]) / (df["h"] - df["l"] + 1e-6)
+    df["30d_volume_avg"] = abs(df['volume_change'].rolling(window=30, min_periods=1).mean())
+    df["volume_ratio"] = ((df["volume_change"] / (df["30d_volume_avg"] + 1e-9)) - 1) * 100
+
+    # Drop NaNs (from rolling calculations and shifting)
+    df = df.replace([np.inf, -np.inf], np.nan).dropna()
+
+    return df
 
 @app.route("/predict")
 def predict():
@@ -64,7 +72,11 @@ def predict():
         predicted_changes = []
 
         for _, row in df.iterrows():
-            x = row[["volume_change", "volume_rroc", "prev_price_change", "prev_volume_change"]].values.reshape(1, -1)
+            x = row[[
+                "volume_change", "volume_rroc", "previous_price_change", 
+                "previous_volume_change", "previous_volume_rroc", 
+                "close_position_in_range", "volume_ratio"
+            ]].values.reshape(1, -1)
             model = buyers_model if row["price_change"] >= 0 else sellers_model
             pred = float(model.predict(x)[0]) / 100  # convert % to decimal
             predicted_changes.append(pred)
