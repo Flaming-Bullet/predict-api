@@ -48,6 +48,17 @@ def add_features(df):
     df["close_position_in_range"] = (df["c"] - df["l"]) / (df["h"] - df["l"] + 1e-6)
     df["30d_volume_avg"] = abs(df['volume_change'].rolling(window=30, min_periods=1).mean())
     df["volume_ratio"] = ((df["volume_change"] / (df["30d_volume_avg"] + 1e-9)) - 1) * 100
+    # Relative Strength Index (RSI)
+    delta = df['Close'].diff()
+    gain = delta.where(delta > 0, 0)
+    loss = -delta.where(delta < 0, 0)
+    avg_gain = gain.rolling(window=14, min_periods=1).mean()
+    avg_loss = loss.rolling(window=14, min_periods=1).mean()
+    rs = avg_gain / avg_loss
+    df['RSI'] = 100 - (100 / (1 + rs))
+
+    # Price-to-Volume Correlation (Correlation of price change and volume change over the last 7 days)
+    df['price_to_volume_corr'] = df['price_change'].rolling(window=7).corr(df['volume_change'])
 
     return df.dropna()
 
@@ -81,7 +92,7 @@ def predict():
                 'price_to_volume_corr'      # 9
             ]].values.reshape(1, -1)
             model = buyers_model if row["price_change"] >= 0 else sellers_model
-            pred = float(model.predict(x)[0]) / 100  # convert % to decimal
+            pred = float(model.predict(x)[0])  # convert % to decimal
             predicted_changes.append(pred)
 
         return jsonify({"predictedChanges": predicted_changes})
