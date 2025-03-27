@@ -67,7 +67,9 @@ def predict():
     ticker = request.args.get("ticker", "").upper()
     range_str = request.args.get("range", "1M").upper()
     days_for_prediction = RANGE_MAP.get(range_str, 30)
-    days_total = days_for_prediction + 3  # 3 extra days for feature calculation
+
+    # Ensure 30 extra days to guarantee feature calculation (including 30-day rolling average)
+    days_total = days_for_prediction + 30  # Ensure 30 extra days for feature calculations
 
     if not ticker:
         return jsonify({"error": "Missing ticker"}), 400
