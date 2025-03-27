@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify
-from flask_cors import CORS  # ✅ Add this
+from flask_cors import CORS
 import xgboost as xgb
 import pandas as pd
 import numpy as np
@@ -9,7 +9,7 @@ import pickle
 from datetime import datetime, timedelta
 
 app = Flask(__name__)
-CORS(app)  # ✅ Enable CORS for all routes
+CORS(app)  # Enable CORS for all routes
 
 # Load models
 MODEL_DIR = "/opt/render/project/src/"
@@ -39,38 +39,17 @@ def fetch_data(ticker, days):
     return df
 
 def add_features(df):
-    df['price_change'] = df['Close'].pct_change()
-    df['volume_change'] = df['Volume'].pct_change()
-    df['volume_rroc'] = df['volume_change'].pct_change().fillna(0) * 100
-    df['previous_volume_change'] = df['volume_change'].shift(1)
-    df['previous_price_change'] = df['price_change'].shift(1)
-    df['previous_volume_rroc'] = df['volume_rroc'].shift(1)
-    
-    # New features
-    df["close_position_in_range"] = (df["Close"] - df["Low"]) / (df["High"] - df["Low"] + 1e-6)
-    
-    # 30-day Volume Average
-    df['30d_volume_avg'] = abs(df['volume_change'].rolling(window=30, min_periods=1).mean())
-    
-    # Volume Ratio (Today's Volume vs. 30-day Volume Average)
-    df['volume_ratio'] = ((df['volume_change'] / (df['30d_volume_avg'] + 1e-9)) -1) * 100
-    
-    # Relative Strength Index (RSI)
-    delta = df['Close'].diff()
-    gain = delta.where(delta > 0, 0)
-    loss = -delta.where(delta < 0, 0)
-    avg_gain = gain.rolling(window=14, min_periods=1).mean()
-    avg_loss = loss.rolling(window=14, min_periods=1).mean()
-    rs = avg_gain / avg_loss
-    df['RSI'] = 100 - (100 / (1 + rs))
+    df["price_change"] = df["c"].pct_change()
+    df["volume_change"] = df["v"].pct_change()
+    df["volume_rroc"] = df["volume_change"].pct_change()
+    df["previous_price_change"] = df["price_change"].shift(1)
+    df["previous_volume_change"] = df["volume_change"].shift(1)
+    df["previous_volume_rroc"] = df["volume_rroc"].shift(1)
+    df["close_position_in_range"] = (df["c"] - df["l"]) / (df["h"] - df["l"] + 1e-6)
+    df["30d_volume_avg"] = abs(df['volume_change'].rolling(window=30, min_periods=1).mean())
+    df["volume_ratio"] = ((df["volume_change"] / (df["30d_volume_avg"] + 1e-9)) - 1) * 100
 
-    # Price-to-Volume Correlation (Correlation of price change and volume change over the last 7 days)
-    df['price_to_volume_corr'] = df['price_change'].rolling(window=7).corr(df['volume_change'])
-
-    # Drop NaNs (from rolling calculations and shifting)
-    df = df.replace([np.inf, -np.inf], np.nan).dropna()
-
-    return df
+    return df.dropna()
 
 @app.route("/predict")
 def predict():
@@ -91,18 +70,12 @@ def predict():
 
         for _, row in df.iterrows():
             x = row[[
-                'volume_change',            # 1
-                'volume_rroc',              # 2
-                'previous_price_change',    # 3
-                'previous_volume_change',   # 4
-                'previous_volume_rroc',     # 5
-                'close_position_in_range',  # 6
-                'volume_ratio',             # 7
-                'RSI',                      # 8
-                'price_to_volume_corr'      # 9
+                "volume_change", "volume_rroc", "previous_price_change", 
+                "previous_volume_change", "previous_volume_rroc", 
+                "close_position_in_range", "volume_ratio"
             ]].values.reshape(1, -1)
             model = buyers_model if row["price_change"] >= 0 else sellers_model
-            pred = float(model.predict(x)[0])  # convert % to decimal
+            pred = float(model.predict(x)[0]) / 100  # convert % to decimal
             predicted_changes.append(pred)
 
         return jsonify({"predictedChanges": predicted_changes})
