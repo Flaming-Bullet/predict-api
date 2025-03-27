@@ -12,7 +12,7 @@ app = Flask(__name__)
 CORS(app)  # ✅ Enable CORS for all routes
 
 # Load models
-MODEL_DIR = "/Users/luke/Downloads/ShortSqueeze/"
+MODEL_DIR = "/opt/render/project/src/"
 buyers_model = pickle.load(open(os.path.join(MODEL_DIR, "buyers_model.pkl"), "rb"))
 sellers_model = pickle.load(open(os.path.join(MODEL_DIR, "sellers_model.pkl"), "rb"))
 
