@@ -83,7 +83,7 @@ def predict():
         start_date = end_date - timedelta(days=days_for_prediction)
 
         # Keep only rows within the requested date range (ensure the correct period of trading days)
-        df = df[df.index >= start_date]
+        df = df[df.index > start_date]
 
         # Now, make predictions
         predicted_changes = []
