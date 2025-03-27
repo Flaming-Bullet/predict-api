@@ -19,7 +19,7 @@ sellers_model = pickle.load(open(os.path.join(MODEL_DIR, "sellers_model.pkl"), "
 # Polygon API key
 POLYGON_API_KEY = "HpsG1iEIOwJFJ_1UcgAZUrAdwwIj0smp"
 
-# Range map (in terms of calendar days)
+# Range map
 RANGE_MAP = {
     "1W": 7,
     "1M": 30,
@@ -34,8 +34,8 @@ def fetch_data(ticker, days):
     res = requests.get(url)
     data = res.json().get("results", [])
     df = pd.DataFrame(data)
-    df["t"] = pd.to_datetime(df["t"], unit="ms")  # Convert timestamp to datetime
-    df.set_index("t", inplace=True)  # Set datetime as index
+    df["t"] = pd.to_datetime(df["t"], unit="ms")
+    df.set_index("t", inplace=True)
     return df
 
 def add_features(df):
@@ -69,24 +69,23 @@ def predict():
     range_str = request.args.get("range", "1M").upper()
     days_for_prediction = RANGE_MAP.get(range_str, 30)
 
-    # Ensure 30 extra days for feature calculation (don't predict on them)
-    days_total = days_for_prediction + 30  # Fetch extra days for feature calculation
+    # Ensure 30 extra days for feature calculation
+    days_total = days_for_prediction + 30  # Fetch extra days for feature calculations
 
     try:
-        # Fetch data for the full period
+        # Fetch the data (with extra days)
         df = fetch_data(ticker, days_total)
 
         # Add features
         df = add_features(df)
 
-        # Determine the start date for the requested period
         end_date = df.index[-1]  # Latest date in the data
         start_date = end_date - timedelta(days=days_for_prediction)
 
         # Keep only rows within the requested date range (ensure the correct period of trading days)
-        df = df[df.index > start_date]
+        df = df[df.index >= start_date]
 
-        # Now, make predictions for the actual trading days
+        # Now, make predictions
         predicted_changes = []
         for _, row in df.iterrows():
             x = row[[
@@ -99,6 +98,7 @@ def predict():
             pred = float(model.predict(x)[0])
             predicted_changes.append(pred)
 
+        # Ensure the lengths match and return the prediction only for the requested days
         return jsonify({"predictedChanges": predicted_changes})
 
     except Exception as e:
