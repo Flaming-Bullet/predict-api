@@ -70,20 +70,19 @@ def predict():
     days_for_prediction = RANGE_MAP.get(range_str, 30)
 
     # Ensure 30 extra days for feature calculation
-    # Modify the number of extra days based on the required feature calculations
-    days_total = days_for_prediction + 30  # Ensure 30 extra days for feature calculations
+    days_total = days_for_prediction + 30  # Fetch extra days for feature calculations
 
     try:
-        # Fetch the data
+        # Fetch the data (with extra days)
         df = fetch_data(ticker, days_total)
 
         # Add features
         df = add_features(df)
 
-        # Trim to only the actual prediction period (use the last `days_for_prediction` days)
+        # Trim to only the actual prediction period (last `days_for_prediction` days)
         df = df.tail(days_for_prediction)
 
-        # Proceed with prediction
+        # Now, make predictions
         predicted_changes = []
         for _, row in df.iterrows():
             x = row[[
@@ -95,7 +94,8 @@ def predict():
             model = buyers_model if row["price_change"] >= 0 else sellers_model
             pred = float(model.predict(x)[0])
             predicted_changes.append(pred)
-        
+
+        # Ensure the lengths match and return the prediction only for the requested days
         return jsonify({"predictedChanges": predicted_changes})
 
     except Exception as e:
