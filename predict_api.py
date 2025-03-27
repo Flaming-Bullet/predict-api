@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify
-from flask_cors import CORS  # ✅ Add this
+from flask_cors import CORS
 import xgboost as xgb
 import pandas as pd
 import numpy as np
@@ -9,7 +9,7 @@ import pickle
 from datetime import datetime, timedelta
 
 app = Flask(__name__)
-CORS(app)  # ✅ Enable CORS for all routes
+CORS(app)  # Enable CORS for all routes
 
 # Load models
 MODEL_DIR = "/opt/render/project/src/"
@@ -80,4 +80,3 @@ if __name__ == "__main__":
     import os
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
-
