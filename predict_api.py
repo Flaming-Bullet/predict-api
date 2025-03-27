@@ -48,7 +48,8 @@ def add_features(df):
     df["close_position_in_range"] = (df["c"] - df["l"]) / (df["h"] - df["l"] + 1e-6)
     df["30d_volume_avg"] = abs(df['volume_change'].rolling(window=30, min_periods=1).mean())
     df["volume_ratio"] = ((df["volume_change"] / (df["30d_volume_avg"] + 1e-9)) - 1) * 100
-    # Relative Strength Index (RSI)
+
+    # RSI calculation
     delta = df['c'].diff()
     gain = delta.where(delta > 0, 0)
     loss = -delta.where(delta < 0, 0)
@@ -57,7 +58,7 @@ def add_features(df):
     rs = avg_gain / avg_loss
     df['RSI'] = 100 - (100 / (1 + rs))
 
-    # Price-to-Volume Correlation (Correlation of price change and volume change over the last 7 days)
+    # Price-to-Volume Correlation
     df['price_to_volume_corr'] = df['price_change'].rolling(window=7).corr(df['volume_change'])
 
     return df.dropna()
@@ -68,7 +69,7 @@ def predict():
     range_str = request.args.get("range", "1M").upper()
     days_for_prediction = RANGE_MAP.get(range_str, 30)
 
-    # Ensure 30 extra days to guarantee feature calculation (including 30-day rolling average)
+    # Ensure 30 extra days for feature calculation
     days_total = days_for_prediction + 30  # Ensure 30 extra days for feature calculations
 
     if not ticker:
@@ -83,18 +84,12 @@ def predict():
 
         for _, row in df.iterrows():
             x = row[[
-                'volume_change',            # 1
-                'volume_rroc',              # 2
-                'previous_price_change',    # 3
-                'previous_volume_change',   # 4
-                'previous_volume_rroc',     # 5
-                'close_position_in_range',  # 6
-                'volume_ratio',             # 7
-                'RSI',                      # 8
-                'price_to_volume_corr'      # 9
+                'volume_change', 'volume_rroc', 'previous_price_change', 
+                'previous_volume_change', 'previous_volume_rroc', 'close_position_in_range', 
+                'volume_ratio', 'RSI', 'price_to_volume_corr'
             ]].values.reshape(1, -1)
             model = buyers_model if row["price_change"] >= 0 else sellers_model
-            pred = float(model.predict(x)[0])  # convert % to decimal
+            pred = float(model.predict(x)[0])  # Predicting % change
             predicted_changes.append(pred)
 
         return jsonify({"predictedChanges": predicted_changes})
