@@ -49,7 +49,7 @@ def add_features(df):
     df["30d_volume_avg"] = abs(df['volume_change'].rolling(window=30, min_periods=1).mean())
     df["volume_ratio"] = ((df["volume_change"] / (df["30d_volume_avg"] + 1e-9)) - 1) * 100
     # Relative Strength Index (RSI)
-    delta = df['Close'].diff()
+    delta = df['c'].diff()
     gain = delta.where(delta > 0, 0)
     loss = -delta.where(delta < 0, 0)
     avg_gain = gain.rolling(window=14, min_periods=1).mean()
