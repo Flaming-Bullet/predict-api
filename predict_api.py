@@ -73,28 +73,29 @@ def predict():
     # Modify the number of extra days based on the required feature calculations
     days_total = days_for_prediction + 30  # Ensure 30 extra days for feature calculations
 
-    # Fetch the data
-    df = fetch_data(ticker, days_total)
+    try:
+        # Fetch the data
+        df = fetch_data(ticker, days_total)
 
-    # Add features
-    df = add_features(df)
+        # Add features
+        df = add_features(df)
 
-    # Trim to only the actual prediction period (use the last `days_for_prediction` days)
-    df = df.tail(days_for_prediction)
+        # Trim to only the actual prediction period (use the last `days_for_prediction` days)
+        df = df.tail(days_for_prediction)
 
-    # Proceed with prediction
-    predicted_changes = []
-    for _, row in df.iterrows():
-        x = row[[
-            'volume_change', 'volume_rroc', 'previous_price_change', 
-            'previous_volume_change', 'previous_volume_rroc', 'close_position_in_range', 
-            'volume_ratio', 'RSI', 'price_to_volume_corr'
-        ]].values.reshape(1, -1)
+        # Proceed with prediction
+        predicted_changes = []
+        for _, row in df.iterrows():
+            x = row[[
+                'volume_change', 'volume_rroc', 'previous_price_change', 
+                'previous_volume_change', 'previous_volume_rroc', 'close_position_in_range', 
+                'volume_ratio', 'RSI', 'price_to_volume_corr'
+            ]].values.reshape(1, -1)
+            
+            model = buyers_model if row["price_change"] >= 0 else sellers_model
+            pred = float(model.predict(x)[0])
+            predicted_changes.append(pred)
         
-        model = buyers_model if row["price_change"] >= 0 else sellers_model
-        pred = float(model.predict(x)[0])
-        predicted_changes.append(pred)
-
         return jsonify({"predictedChanges": predicted_changes})
 
     except Exception as e:
