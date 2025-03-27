@@ -70,9 +70,15 @@ def predict():
 
         for _, row in df.iterrows():
             x = row[[
-                "volume_change", "volume_rroc", "previous_price_change", 
-                "previous_volume_change", "previous_volume_rroc", 
-                "close_position_in_range", "volume_ratio"
+                'volume_change',            # 1
+                'volume_rroc',              # 2
+                'previous_price_change',    # 3
+                'previous_volume_change',   # 4
+                'previous_volume_rroc',     # 5
+                'close_position_in_range',  # 6
+                'volume_ratio',             # 7
+                'RSI',                      # 8
+                'price_to_volume_corr'      # 9
             ]].values.reshape(1, -1)
             model = buyers_model if row["price_change"] >= 0 else sellers_model
             pred = float(model.predict(x)[0]) / 100  # convert % to decimal
