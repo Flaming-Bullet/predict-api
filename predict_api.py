@@ -70,27 +70,30 @@ def predict():
     days_for_prediction = RANGE_MAP.get(range_str, 30)
 
     # Ensure 30 extra days for feature calculation
+    # Modify the number of extra days based on the required feature calculations
     days_total = days_for_prediction + 30  # Ensure 30 extra days for feature calculations
 
-    if not ticker:
-        return jsonify({"error": "Missing ticker"}), 400
+    # Fetch the data
+    df = fetch_data(ticker, days_total)
 
-    try:
-        df = fetch_data(ticker, days_total)
-        df = add_features(df)
-        df = df.tail(days_for_prediction)  # trim to exact output length
+    # Add features
+    df = add_features(df)
 
-        predicted_changes = []
+    # Trim to only the actual prediction period (use the last `days_for_prediction` days)
+    df = df.tail(days_for_prediction)
 
-        for _, row in df.iterrows():
-            x = row[[
-                'volume_change', 'volume_rroc', 'previous_price_change', 
-                'previous_volume_change', 'previous_volume_rroc', 'close_position_in_range', 
-                'volume_ratio', 'RSI', 'price_to_volume_corr'
-            ]].values.reshape(1, -1)
-            model = buyers_model if row["price_change"] >= 0 else sellers_model
-            pred = float(model.predict(x)[0])  # Predicting % change
-            predicted_changes.append(pred)
+    # Proceed with prediction
+    predicted_changes = []
+    for _, row in df.iterrows():
+        x = row[[
+            'volume_change', 'volume_rroc', 'previous_price_change', 
+            'previous_volume_change', 'previous_volume_rroc', 'close_position_in_range', 
+            'volume_ratio', 'RSI', 'price_to_volume_corr'
+        ]].values.reshape(1, -1)
+        
+        model = buyers_model if row["price_change"] >= 0 else sellers_model
+        pred = float(model.predict(x)[0])
+        predicted_changes.append(pred)
 
         return jsonify({"predictedChanges": predicted_changes})
 
