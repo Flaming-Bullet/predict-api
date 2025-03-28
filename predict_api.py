@@ -94,7 +94,10 @@ def predict():
             model = buyers_model if row["price_change"] >= 0 else sellers_model
             predicted_change = float(model.predict(x)[0])
 
-            predictedPrice = row["c"] * (1 + predicted_change)
+            previous_row = df.iloc[i - 1]  # Access the previous row
+            previous_price = previous_row["c"]  # Previous row price
+
+            predictedPrice = previous_price * (1 + predicted_change)
 
             rows.append({
                 "time": timestamp.strftime("%Y-%m-%d"),
