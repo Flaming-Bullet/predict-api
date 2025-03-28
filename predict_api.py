@@ -80,7 +80,6 @@ def predict():
         df = df.tail(days_for_prediction)
 
         rows = []
-        last_predicted_price = None
 
         for i, (timestamp, row) in enumerate(df.iterrows()):
             # Extract input features
@@ -94,13 +93,15 @@ def predict():
             model = buyers_model if row["price_change"] >= 0 else sellers_model
             predicted_change = float(model.predict(x)[0])
 
-            # Handle first row case
-            if i == 0:
-                predictedPrice = row["c"]  # No previous price, use the current price
-            else:
-                previous_row = df.iloc[i - 1]  # Access the previous row
-                previous_price = previous_row["c"]  # Previous row price
+            # Use shift() to get the previous row, safely
+            previous_row = df.shift(1).iloc[i] if i > 0 else None  # No previous row if i == 0
+
+            # Check if previous row exists (not None or NaN)
+            if previous_row is not None and pd.notna(previous_row["c"]):
+                previous_price = previous_row["c"]  # Access the price from the previous row
                 predictedPrice = previous_price * (1 + predicted_change)
+            else:
+                predictedPrice = row["c"]  # For i == 0, use the current price as the predicted price
 
             rows.append({
                 "time": timestamp.strftime("%Y-%m-%d"),
