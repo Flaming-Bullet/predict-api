@@ -95,10 +95,10 @@ def predict():
             predicted_change = float(model.predict(x)[0]) * 100
 
             rows.append({
-                "time": timestamp.strftime("%Y-%m-%d 00:00:00"),
-                "actualChange": round(row["price_change"], 6) if pd.notna(row["price_change"]) else None,
-                "predictedChange": round(predicted_change, 6) if predicted_change is not None else None,
-                "volume": round(row["v"], 2) if pd.notna(row["v"]) else None
+                "time": timestamp.strftime("%Y-%m-%d"),
+                "actualChange": row["price_change"],
+                "predictedChange": round(predicted_change, 2) if predicted_change is not None else None,
+                "volume": row["v"]
             })
 
         return jsonify({ "data": rows })
