@@ -21,10 +21,10 @@ POLYGON_API_KEY = "HpsG1iEIOwJFJ_1UcgAZUrAdwwIj0smp"
 
 # Range map
 RANGE_MAP = {
-    "1W": 7,
-    "1M": 30,
-    "3M": 90,
-    "1Y": 365
+    "1W": 5,
+    "1M": 22,
+    "3M": 66,
+    "1Y": 252
 }
 
 def fetch_data(ticker, days):
@@ -70,7 +70,7 @@ def predict():
     days_for_prediction = RANGE_MAP.get(range_str, 30)
 
     # Ensure 30 extra days for feature calculation
-    days_total = days_for_prediction + 30  # Fetch extra days for feature calculations
+    days_total = days_for_prediction + 60  # Fetch extra days for feature calculations
 
     try:
         # Fetch the data (with extra days)
@@ -79,11 +79,8 @@ def predict():
         # Add features
         df = add_features(df)
 
-        end_date = df.index[-1]  # Latest date in the data
-        start_date = end_date - timedelta(days=days_for_prediction)
-
         # Keep only rows within the requested date range (ensure the correct period of trading days)
-        df = df[df.index > start_date]
+        df = df.tail(days_for_prediction)
 
         # Now, make predictions
         predicted_changes = []
@@ -99,7 +96,7 @@ def predict():
             predicted_changes.append(pred)
 
         # Ensure the lengths match and return the prediction only for the requested days
-        return jsonify({"predictedChanges": predicted_changes[-days_for_prediction:]})
+        return jsonify({"predictedChanges": predicted_changes})
 
     except Exception as e:
         import traceback
