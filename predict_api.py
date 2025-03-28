@@ -92,12 +92,12 @@ def predict():
 
             # Choose model based on current price_change direction
             model = buyers_model if row["price_change"] >= 0 else sellers_model
-            predicted_change = float(model.predict(x)[0]) * 100
+            predicted_change = float(model.predict(x)[0])
 
             rows.append({
                 "time": timestamp.strftime("%Y-%m-%d"),
                 "actualChange": row["price_change"],
-                "predictedChange": round(predicted_change, 2) if predicted_change is not None else None,
+                "predictedChange": predicted_change,
                 "volume": row["v"]
             })
 
