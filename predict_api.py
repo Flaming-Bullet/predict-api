@@ -99,10 +99,10 @@ def predict():
 
             rows.append({
                 "time": timestamp.strftime("%Y-%m-%d 00:00:00"),
-                "actualPrice": row["c"],
-                "priceChange": row["price_change"],
-                "predictedPrice": last_predicted_price,
-                "predictedChange": predicted_change,
+                "actualPrice": round(row["c"], 2),
+                "priceChange": round(row["price_change"], 2),
+                "predictedPrice": round(last_predicted_price, 2),
+                "predictedChange": round(predicted_change, 2),
                 "volume": row["v"]
             })
 
