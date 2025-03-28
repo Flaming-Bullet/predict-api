@@ -94,10 +94,14 @@ def predict():
             model = buyers_model if row["price_change"] >= 0 else sellers_model
             predicted_change = float(model.predict(x)[0])
 
+            predictedPrice = row["c"] * (1 + predicted_change)
+
             rows.append({
                 "time": timestamp.strftime("%Y-%m-%d"),
                 "actualChange": row["price_change"] * 100,
+                "actualPrice": row["c"],
                 "predictedChange": predicted_change * 100,
+                "predictedPrice": predictedPrice,
                 "volume": row["v"]
             })
 
