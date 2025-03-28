@@ -96,7 +96,7 @@ def predict():
 
             # Apply predicted % change
             if last_predicted_price is None:
-                last_predicted_price = row["c"] * (1 + predicted_change)
+                last_predicted_price = row["c"]
             else:
                 last_predicted_price = last_predicted_price * (1 + predicted_change)
 
