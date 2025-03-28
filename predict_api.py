@@ -96,7 +96,10 @@ def predict():
             predicted_changes.append(pred)
 
         # Ensure the lengths match and return the prediction only for the requested days
-        return jsonify({"predictedChanges": predicted_changes})
+        return jsonify({
+            "predictedChanges": predicted_changes,
+            "timestamps": df.index.strftime("%Y-%m-%d 00:00:00").tolist()
+        })
 
     except Exception as e:
         import traceback
