@@ -69,42 +69,50 @@ def predict():
     range_str = request.args.get("range", "1M").upper()
     days_for_prediction = RANGE_MAP.get(range_str, 30)
 
-    # Ensure 30 extra days for feature calculation
-    days_total = days_for_prediction + 60  # Fetch extra days for feature calculations
+    # Add buffer days for feature generation
+    days_total = days_for_prediction + 60
 
     try:
-        # Fetch the data (with extra days)
         df = fetch_data(ticker, days_total)
-
-        # Add features
         df = add_features(df)
 
-        # Keep only rows within the requested date range (ensure the correct period of trading days)
+        # Trim to prediction range only (after dropna)
         df = df.tail(days_for_prediction)
 
-        # Now, make predictions
-        predicted_changes = []
-        for _, row in df.iterrows():
+        rows = []
+        last_predicted_price = None
+
+        for i, (timestamp, row) in enumerate(df.iterrows()):
+            # Extract input features
             x = row[[
-                'volume_change', 'volume_rroc', 'previous_price_change', 
-                'previous_volume_change', 'previous_volume_rroc', 'close_position_in_range', 
+                'volume_change', 'volume_rroc', 'previous_price_change',
+                'previous_volume_change', 'previous_volume_rroc', 'close_position_in_range',
                 'volume_ratio', 'RSI', 'price_to_volume_corr'
             ]].values.reshape(1, -1)
-            
-            model = buyers_model if row["price_change"] >= 0 else sellers_model
-            pred = float(model.predict(x)[0])
-            predicted_changes.append(pred)
 
-        # Ensure the lengths match and return the prediction only for the requested days
-        return jsonify({
-            "predictedChanges": predicted_changes,
-            "timestamps": df.index.strftime("%Y-%m-%d 00:00:00").tolist()
-        })
+            # Choose model based on current price_change direction
+            model = buyers_model if row["price_change"] >= 0 else sellers_model
+            predicted_change = float(model.predict(x)[0])
+
+            # Apply predicted % change
+            if last_predicted_price is None:
+                last_predicted_price = row["c"] * (1 + predicted_change)
+            else:
+                last_predicted_price = last_predicted_price * (1 + predicted_change)
+
+            rows.append({
+                "time": timestamp.strftime("%Y-%m-%d 00:00:00"),
+                "actualPrice": row["c"],
+                "predictedPrice": last_predicted_price,
+                "volume": row["v"]
+            })
+
+        return jsonify({ "data": rows })
 
     except Exception as e:
         import traceback
         traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
+        return jsonify({ "error": str(e) }), 500
 
 if __name__ == "__main__":
     import os
