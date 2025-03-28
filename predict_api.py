@@ -95,10 +95,7 @@ def predict():
             predicted_change = float(model.predict(x)[0])
 
             # Apply predicted % change
-            if last_predicted_price is None:
-                last_predicted_price = row["c"]
-            else:
-                last_predicted_price = last_predicted_price * (1 + predicted_change)
+            last_predicted_price = row['c'] * (1 + predicted_change)
 
             rows.append({
                 "time": timestamp.strftime("%Y-%m-%d 00:00:00"),
