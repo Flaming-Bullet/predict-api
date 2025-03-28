@@ -99,7 +99,7 @@ def predict():
             predicted_changes.append(pred)
 
         # Ensure the lengths match and return the prediction only for the requested days
-        return jsonify({"predictedChanges": predicted_changes})
+    return jsonify({"predictedChanges": predicted_changes[-days_for_prediction:]})
 
     except Exception as e:
         import traceback
