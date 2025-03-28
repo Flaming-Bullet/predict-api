@@ -96,8 +96,8 @@ def predict():
 
             rows.append({
                 "time": timestamp.strftime("%Y-%m-%d"),
-                "actualChange": row["price_change"],
-                "predictedChange": predicted_change,
+                "actualChange": row["price_change"] * 100,
+                "predictedChange": predicted_change * 100,
                 "volume": row["v"]
             })
 
