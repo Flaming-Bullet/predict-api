@@ -5,11 +5,10 @@ import pandas as pd
 import numpy as np
 import requests
 import os
-import pickle
 from datetime import datetime, timedelta
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
+CORS(app)
 
 # Load models
 MODEL_DIR = "/opt/render/project/src/"
@@ -20,10 +19,8 @@ buyers_model.load_model(os.path.join(MODEL_DIR, "buyers_model.json"))
 sellers_model = xgb.Booster()
 sellers_model.load_model(os.path.join(MODEL_DIR, "sellers_model.json"))
 
-# Polygon API key
 POLYGON_API_KEY = "HpsG1iEIOwJFJ_1UcgAZUrAdwwIj0smp"
 
-# Range map
 RANGE_MAP = {
     "1W": 5,
     "1M": 22,
@@ -77,61 +74,52 @@ def predict():
     ticker = request.args.get("ticker", "").upper()
     range_str = request.args.get("range", "1M").upper()
     days_for_prediction = RANGE_MAP.get(range_str, 30)
-
-    # Add buffer days for feature generation
     days_total = days_for_prediction + 60
 
     try:
         df = fetch_data(ticker, days_total)
         df = add_features(df)
-
-        # Trim to prediction range only (after dropna)
         df = df.tail(days_for_prediction)
 
         rows = []
+        features = [
+            'volume_change', 'volume_rroc', 'previous_price_change',
+            'previous_volume_change', 'previous_volume_rroc',
+            '20d_volume_avg', '20d_price_avg', '20d_rroc_avg',
+            '5d_volume_avg', '5d_price_avg', '5d_rroc_avg',
+            'RSI', 'price_to_volume_corr'
+        ]
 
         for i, (timestamp, row) in enumerate(df.iterrows()):
-            # Extract input features
-            features = [
-                'volume_change', 'volume_rroc', 'previous_price_change', 
-                'previous_volume_change', 'previous_volume_rroc',
-                '20d_volume_avg', '20d_price_avg', '20d_rroc_avg',
-                '5d_volume_avg', '5d_price_avg', '5d_rroc_avg',
-                'RSI', 'price_to_volume_corr'
-            ]
             x_df = pd.DataFrame([row[features].values], columns=features)
             dmatrix = xgb.DMatrix(x_df, feature_names=features)
-            
+
             model = buyers_model if row["price_change"] >= 0 else sellers_model
             predicted_change = float(model.predict(dmatrix)[0])
-            
-            # Use shift() to get the previous row, safely
-            previous_row = df.shift(1).iloc[i] if i > 0 else None  # No previous row if i == 0
 
-            # Check if previous row exists (not None or NaN)
-            if previous_row is not None and pd.notna(previous_row["c"]):
-                previous_price = previous_row["c"]  # Access the price from the previous row
-                predictedPrice = previous_price * (1 + predicted_change)
+            previous_row = df.shift(1).iloc[i] if i > 0 else None
+            if previous_row is not None and pd.notna(previous_row["Close"]):
+                previous_price = previous_row["Close"]
+                predicted_price = previous_price * (1 + predicted_change)
             else:
-                predictedPrice = row["c"]  # For i == 0, use the current price as the predicted price
+                predicted_price = row["Close"]
 
             rows.append({
                 "time": timestamp.strftime("%Y-%m-%d"),
                 "actualChange": row["price_change"] * 100,
-                "actualPrice": row["c"],
+                "actualPrice": row["Close"],
                 "predictedChange": predicted_change * 100,
-                "predictedPrice": predictedPrice,
-                "volume": row["v"]
+                "predictedPrice": predicted_price,
+                "volume": row["Volume"]
             })
 
-        return jsonify({ "data": rows })
+        return jsonify({"data": rows})
 
     except Exception as e:
         import traceback
         traceback.print_exc()
-        return jsonify({ "error": str(e) }), 500
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
-    import os
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
