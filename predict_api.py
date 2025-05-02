@@ -93,8 +93,8 @@ def predict():
         for i, (timestamp, row) in enumerate(df.iterrows()):
             # Extract input features
             features = [
-                'volume_change', 'volume_rroc',
-                'previous_volume_change', 'previous_price_change', 'previous_volume_rroc',
+                'volume_change', 'volume_rroc', 'previous_price_change', 
+                'previous_volume_change', 'previous_volume_rroc',
                 '20d_volume_avg', '20d_price_avg', '20d_rroc_avg',
                 '5d_volume_avg', '5d_price_avg', '5d_rroc_avg',
                 'RSI', 'price_to_volume_corr'
