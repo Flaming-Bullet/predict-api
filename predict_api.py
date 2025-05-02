@@ -13,8 +13,12 @@ CORS(app)  # Enable CORS for all routes
 
 # Load models
 MODEL_DIR = "/opt/render/project/src/"
-buyers_model = pickle.load(open(os.path.join(MODEL_DIR, "buyers_model.json"), "rb"))
-sellers_model = pickle.load(open(os.path.join(MODEL_DIR, "sellers_model.json"), "rb"))
+
+buyers_model = xgb.Booster()
+buyers_model.load_model(os.path.join(MODEL_DIR, "buyers_model.json"))
+
+sellers_model = xgb.Booster()
+sellers_model.load_model(os.path.join(MODEL_DIR, "sellers_model.json"))
 
 # Polygon API key
 POLYGON_API_KEY = "HpsG1iEIOwJFJ_1UcgAZUrAdwwIj0smp"
