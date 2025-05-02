@@ -102,7 +102,8 @@ def predict():
 
             # Choose model based on current price_change direction
             model = buyers_model if row["price_change"] >= 0 else sellers_model
-            predicted_change = float(model.predict(x)[0])
+            dmatrix = xgb.DMatrix(x)
+            predicted_change = float(model.predict(dmatrix)[0])
 
             # Use shift() to get the previous row, safely
             previous_row = df.shift(1).iloc[i] if i > 0 else None  # No previous row if i == 0
