@@ -92,19 +92,19 @@ def predict():
 
         for i, (timestamp, row) in enumerate(df.iterrows()):
             # Extract input features
-            x = row[[
+            features = [
                 'price_change', 'volume_change', 'volume_rroc',
                 'previous_volume_change', 'previous_price_change', 'previous_volume_rroc',
                 '20d_volume_avg', '20d_price_avg', '20d_rroc_avg',
                 '5d_volume_avg', '5d_price_avg', '5d_rroc_avg',
                 'RSI', 'price_to_volume_corr'
-            ]].values.reshape(1, -1)
-
-            # Choose model based on current price_change direction
+            ]
+            x_df = pd.DataFrame([row[features].values], columns=features)
+            dmatrix = xgb.DMatrix(x_df, feature_names=features)
+            
             model = buyers_model if row["price_change"] >= 0 else sellers_model
-            dmatrix = xgb.DMatrix(x)
             predicted_change = float(model.predict(dmatrix)[0])
-
+            
             # Use shift() to get the previous row, safely
             previous_row = df.shift(1).iloc[i] if i > 0 else None  # No previous row if i == 0
 
