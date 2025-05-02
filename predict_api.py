@@ -39,18 +39,24 @@ def fetch_data(ticker, days):
     return df
 
 def add_features(df):
-    df["price_change"] = df["c"].pct_change()
-    df["volume_change"] = df["v"].pct_change()
-    df["volume_rroc"] = df["volume_change"].pct_change()
-    df["previous_price_change"] = df["price_change"].shift(1)
-    df["previous_volume_change"] = df["volume_change"].shift(1)
-    df["previous_volume_rroc"] = df["volume_rroc"].shift(1)
-    df["close_position_in_range"] = (df["c"] - df["l"]) / (df["h"] - df["l"] + 1e-6)
-    df["30d_volume_avg"] = abs(df['volume_change'].rolling(window=30, min_periods=1).mean())
-    df["volume_ratio"] = ((df["volume_change"] / (df["30d_volume_avg"] + 1e-9)) - 1) * 100
+    df = df.rename(columns={"c": "Close", "v": "Volume", "h": "High", "l": "Low"})
 
-    # RSI calculation
-    delta = df['c'].diff()
+    df['price_change'] = df['Close'].pct_change()
+    df['volume_change'] = df['Volume'].pct_change()
+    df['volume_rroc'] = df['volume_change'].pct_change().fillna(0) * 100
+    df['previous_volume_change'] = df['volume_change'].shift(1)
+    df['previous_price_change'] = df['price_change'].shift(1)
+    df['previous_volume_rroc'] = df['volume_rroc'].shift(1)
+
+    df['20d_volume_avg'] = df['volume_change'].rolling(window=20, min_periods=1).mean()
+    df['20d_price_avg'] = df['price_change'].rolling(window=20, min_periods=1).mean()
+    df['20d_rroc_avg'] = df['volume_rroc'].rolling(window=20, min_periods=1).mean()
+
+    df['5d_volume_avg'] = df['volume_change'].rolling(window=5, min_periods=1).mean()
+    df['5d_price_avg'] = df['price_change'].rolling(window=5, min_periods=1).mean()
+    df['5d_rroc_avg'] = df['volume_rroc'].rolling(window=5, min_periods=1).mean()
+
+    delta = df['Close'].diff()
     gain = delta.where(delta > 0, 0)
     loss = -delta.where(delta < 0, 0)
     avg_gain = gain.rolling(window=14, min_periods=1).mean()
@@ -58,7 +64,6 @@ def add_features(df):
     rs = avg_gain / avg_loss
     df['RSI'] = 100 - (100 / (1 + rs))
 
-    # Price-to-Volume Correlation
     df['price_to_volume_corr'] = df['price_change'].rolling(window=7).corr(df['volume_change'])
 
     return df.dropna()
@@ -84,9 +89,11 @@ def predict():
         for i, (timestamp, row) in enumerate(df.iterrows()):
             # Extract input features
             x = row[[
-                'volume_change', 'volume_rroc', 'previous_price_change',
-                'previous_volume_change', 'previous_volume_rroc', 'close_position_in_range',
-                'volume_ratio', 'RSI', 'price_to_volume_corr'
+                'price_change', 'volume_change', 'volume_rroc',
+                'previous_volume_change', 'previous_price_change', 'previous_volume_rroc',
+                '20d_volume_avg', '20d_price_avg', '20d_rroc_avg',
+                '5d_volume_avg', '5d_price_avg', '5d_rroc_avg',
+                'RSI', 'price_to_volume_corr'
             ]].values.reshape(1, -1)
 
             # Choose model based on current price_change direction
