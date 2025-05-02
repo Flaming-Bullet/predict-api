@@ -79,7 +79,7 @@ def predict():
     try:
         df = fetch_data(ticker, days_total)
         df = add_features(df)
-        df = df.tail(days_for_prediction)
+        df = df.iloc[-days_for_prediction:]
 
         rows = []
         features = [
