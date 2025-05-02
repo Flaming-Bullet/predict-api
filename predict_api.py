@@ -99,7 +99,7 @@ def predict():
 
             previous_row = df.shift(1).iloc[i] if i > 0 else None
             if previous_row is not None and pd.notna(previous_row["Close"]):
-                predictedPrice = row["Close"] * (1 + predicted_change)
+                predicted_price = row["Close"] * (1 + predicted_change)
             else:
                 predicted_price = row["Close"]
 
